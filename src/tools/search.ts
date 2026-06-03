@@ -80,11 +80,12 @@ export const searchTools: ToolDef[] = [
   {
     name: "jlcpcb_search_components",
     description:
-      "Search the JLCPCB component catalog by keyword and/or parametric filters, " +
-      "enriched with live stock and pricing. The catalog (descriptions, packages, " +
-      "attributes, categories) comes from a local SQLite snapshot; stock and pricing " +
-      "tiers are fetched live per result. Results are ranked Basic-first, then by stock, " +
-      "then by unit price. Examples: '10k resistor 0805', 'STM32F4', 'ceramic capacitor'.",
+      "Search the JLCPCB component catalog by keyword and/or parametric filters, enriched " +
+      "with live pricing. The catalog (descriptions, packages, attributes, categories) comes " +
+      "from a local SQLite snapshot. Each result reports `jlc_assembly_stock` (catalog — the " +
+      "figure that matters for PCBA) and `lcsc_retail_stock` (live LCSC retail, a different pool; " +
+      "a 0 here is NOT an assembly shortage). Ranked Basic-first, then by assembly stock, then " +
+      "unit price. Examples: '10k resistor 0805', 'STM32F4', 'ceramic capacitor'.",
     inputSchema: z.object({
       query: z
         .string()
@@ -205,8 +206,9 @@ export const searchTools: ToolDef[] = [
             category: row.category,
             subcategory: row.subcategory,
             basic: row.basic === 1,
-            catalog_stock: row.stock,
-            current_stock: live?.stockNumber ?? row.stock,
+            // Assembly availability (catalog) vs LCSC retail (live) — different pools.
+            jlc_assembly_stock: row.stock,
+            lcsc_retail_stock: live?.stockNumber ?? null,
             pricing,
             datasheet: live?.pdfUrl ?? row.datasheet ?? null,
             jlcpcb_url: `https://jlcpcb.com/partdetail/${row.lcsc}`,

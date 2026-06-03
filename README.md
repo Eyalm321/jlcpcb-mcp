@@ -11,9 +11,17 @@ It uses a **hybrid** data model:
 | Data | Source | Freshness |
 |---|---|---|
 | Component catalog (descriptions, packages, attributes, categories) | Local SQLite, built from [yaqwsx/jlcparts](https://github.com/yaqwsx/jlcparts) | Snapshot from your last refresh |
-| Stock levels | Live JLCPCB API (`wmsc.lcsc.com`) | Real-time, per query |
-| Pricing tiers | Live JLCPCB API | Real-time, per query |
-| Datasheet URL | Live JLCPCB API | Real-time, per query |
+| **JLCPCB assembly stock** (the figure that matters for PCBA) | Catalog snapshot (or the official Parts API, when authorized) | Snapshot / real-time |
+| LCSC **retail** stock | Live LCSC API (`wmsc.lcsc.com`) | Real-time, per query |
+| Pricing tiers | Live LCSC API (`wmsc.lcsc.com`) | Real-time, per query |
+| Datasheet URL | Live LCSC API (`wmsc.lcsc.com`) | Real-time, per query |
+
+> **Two stock pools, don't confuse them.** `wmsc.lcsc.com` reports **LCSC retail** stock,
+> which is a *different inventory* from **JLCPCB assembly** stock. A part can read `0` on LCSC
+> retail while having millions available for JLC assembly (common for Basic parts). Tools expose
+> both as `lcsc_retail_stock` and `jlc_assembly_stock`; **treat assembly stock as authoritative
+> for board production.** The official Parts API (`getComponentDetailByCode`) gives real-time
+> assembly stock once your API access is approved.
 
 The catalog is downloaded and built into a local SQLite database on first use (a one-time
 download of ~50 MB that expands to a larger on-disk database). Stock, pricing, and

@@ -75,7 +75,8 @@ describe("searchTools", () => {
     const r = result.results[0];
     expect(r.lcsc).toBe("C100");
     expect(r.basic).toBe(true);
-    expect(r.current_stock).toBe(123456);
+    expect(r.jlc_assembly_stock).toBe(5000); // catalog row stock
+    expect(r.lcsc_retail_stock).toBe(123456); // live wmsc stock
     expect(r.pricing).toHaveLength(3); // capped at first 3 tiers
     expect(r.datasheet).toBe("https://live/ds.pdf");
     expect(r.jlcpcb_url).toBe("https://jlcpcb.com/partdetail/C100");
@@ -106,7 +107,8 @@ describe("searchTools", () => {
 
     const result: any = await tool.handler({ query: "10k", max_results: 5 });
     const r = result.results[0];
-    expect(r.current_stock).toBe(5000); // catalog stock
+    expect(r.jlc_assembly_stock).toBe(5000); // catalog stock
+    expect(r.lcsc_retail_stock).toBeNull(); // live unavailable
     expect(r.pricing).toEqual([]);
     expect(r.datasheet).toBe("http://ds");
     expect(r.basic).toBe(false);

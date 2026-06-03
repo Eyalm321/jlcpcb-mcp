@@ -70,7 +70,8 @@ describe("detailTools", () => {
 
       expect(result.found).toBe(true);
       expect(result.lcsc).toBe("C17976");
-      expect(result.current_stock).toBe(9999);
+      expect(result.jlc_assembly_stock).toBe(100); // from catalog row
+      expect(result.lcsc_retail_stock).toBe(9999); // from live wmsc
       expect(result.pricing).toEqual([{ qty: 1, price: 1.23 }]);
       expect(result.specifications).toEqual([{ name: "Core", value: "Cortex-M4" }]);
       expect(result.datasheet).toBe("https://live/ds.pdf");
@@ -87,18 +88,31 @@ describe("detailTools", () => {
   });
 
   describe("get_component_stock", () => {
-    it("prefers live stock", async () => {
+    it("reports both assembly (catalog) and retail (live) stock", async () => {
+      mockGet.mockResolvedValue(catalogRow({ stock: 12345 }));
       mockFetch.mockResolvedValue({ stockNumber: 555 });
       const result: any = await stockTool.handler({ lcsc: "C1" });
-      expect(result).toMatchObject({ stock: 555, source: "live" });
-      expect(mockGet).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        jlc_assembly_stock: 12345,
+        lcsc_retail_stock: 555,
+        found: true,
+      });
     });
 
-    it("falls back to catalog stock when live is unavailable", async () => {
+    it("flags a retail 0 against assembly availability (the bug this fixes)", async () => {
+      mockGet.mockResolvedValue(catalogRow({ stock: 7619413 }));
+      mockFetch.mockResolvedValue({ stockNumber: 0 });
+      const result: any = await stockTool.handler({ lcsc: "C25744" });
+      expect(result.jlc_assembly_stock).toBe(7619413);
+      expect(result.lcsc_retail_stock).toBe(0);
+      expect(result.note).toMatch(/not an assembly shortage/i);
+    });
+
+    it("reports not found when neither pool has the part", async () => {
+      mockGet.mockResolvedValue(null);
       mockFetch.mockResolvedValue(null);
-      mockGet.mockResolvedValue(catalogRow({ stock: 77 }));
-      const result: any = await stockTool.handler({ lcsc: "C1" });
-      expect(result).toMatchObject({ stock: 77, source: "catalog" });
+      const result: any = await stockTool.handler({ lcsc: "C0" });
+      expect(result.found).toBe(false);
     });
   });
 

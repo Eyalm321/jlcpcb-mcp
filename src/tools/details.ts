@@ -18,8 +18,9 @@ export const detailTools: ToolDef[] = [
     name: "jlcpcb_get_component_details",
     description:
       "Get full details for a specific JLCPCB part: catalog metadata (manufacturer, " +
-      "package, category) plus live stock, full pricing tiers, parametric specifications, " +
-      "datasheet, and product images.",
+      "package, category), pricing tiers, parametric specifications, datasheet, and images, " +
+      "plus stock from both pools — `jlc_assembly_stock` (catalog snapshot, authoritative for " +
+      "PCBA) and `lcsc_retail_stock` (live LCSC retail). An LCSC-retail 0 is NOT an assembly shortage.",
     inputSchema: lcscSchema,
     handler: async (args: LcscArgs) => {
       const lcsc = normalizeLcsc(args.lcsc);
@@ -53,8 +54,16 @@ export const detailTools: ToolDef[] = [
         subcategory: row?.subcategory ?? null,
         description: row?.description ?? null,
         basic: row ? row.basic === 1 : null,
-        catalog_stock: row?.stock ?? null,
-        current_stock: live?.stockNumber ?? row?.stock ?? null,
+        // JLC assembly stock (catalog snapshot — the figure that matters for PCBA)
+        // vs LCSC retail stock (live wmsc — a different inventory pool).
+        jlc_assembly_stock: row?.stock ?? null,
+        lcsc_retail_stock: live?.stockNumber ?? null,
+        ...(live?.stockNumber === 0 && (row?.stock ?? 0) > 0
+          ? {
+              stock_note:
+                "Available for JLCPCB assembly; LCSC retail shows 0 (a separate inventory pool) — not an assembly shortage.",
+            }
+          : {}),
         pricing,
         specifications,
         datasheet: live?.pdfUrl ?? row?.datasheet ?? null,
@@ -67,20 +76,36 @@ export const detailTools: ToolDef[] = [
   {
     name: "jlcpcb_get_component_stock",
     description:
-      "Get the live, real-time stock quantity for a specific JLCPCB part. Falls back to " +
-      "the catalog snapshot value if the live API is unavailable.",
+      "Get stock for a specific JLCPCB part from BOTH inventory pools: `jlc_assembly_stock` " +
+      "(JLCPCB assembly availability, from the catalog snapshot — the number that matters for " +
+      "PCBA) and `lcsc_retail_stock` (LCSC retail, live from wmsc.lcsc.com). These are DIFFERENT " +
+      "pools: an LCSC-retail 0 does NOT mean a part is unavailable for assembly (common for Basic " +
+      "parts). Treat assembly stock as authoritative for board production.",
     inputSchema: lcscSchema,
     handler: async (args: LcscArgs) => {
       const lcsc = normalizeLcsc(args.lcsc);
-      const live = await fetchComponentDetail(lcsc);
-      if (live && typeof live.stockNumber === "number") {
-        return { lcsc, stock: live.stockNumber, source: "live" as const };
+      const [row, live] = await Promise.all([
+        dbManager.getComponent(lcsc),
+        fetchComponentDetail(lcsc),
+      ]);
+      if (!row && !live) {
+        return { lcsc, found: false, message: `Component ${lcsc} not found` };
       }
-      const row = await dbManager.getComponent(lcsc);
-      if (row) {
-        return { lcsc, stock: row.stock, source: "catalog" as const };
-      }
-      return { lcsc, stock: null, source: "none" as const, message: `Component ${lcsc} not found` };
+      const assembly = row?.stock ?? null;
+      const retail =
+        live && typeof live.stockNumber === "number" ? live.stockNumber : null;
+      return {
+        lcsc,
+        found: true,
+        jlc_assembly_stock: assembly,
+        jlc_assembly_stock_source: row ? "catalog-snapshot" : null,
+        lcsc_retail_stock: retail,
+        ...(retail === 0 && assembly != null && assembly > 0
+          ? {
+              note: "In stock for JLCPCB assembly; LCSC retail shows 0 (a separate inventory pool) — not an assembly shortage.",
+            }
+          : {}),
+      };
     },
   },
   {
