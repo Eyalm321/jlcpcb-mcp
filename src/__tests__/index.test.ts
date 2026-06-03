@@ -3,17 +3,19 @@ import { searchTools } from "../tools/search.js";
 import { detailTools } from "../tools/details.js";
 import { catalogTools } from "../tools/catalog.js";
 import { maintenanceTools } from "../tools/maintenance.js";
+import { officialTools } from "../tools/official.js";
 
 const allTools = [
   ...searchTools,
   ...detailTools,
   ...catalogTools,
   ...maintenanceTools,
+  ...officialTools,
 ];
 
 describe("tool registry", () => {
-  it("aggregates the full 8-tool set", () => {
-    expect(allTools).toHaveLength(8);
+  it("aggregates the full 12-tool set", () => {
+    expect(allTools).toHaveLength(12);
   });
 
   it("has no duplicate tool names", () => {
@@ -47,6 +49,10 @@ describe("tool registry", () => {
         "jlcpcb_list_categories",
         "jlcpcb_refresh_database",
         "jlcpcb_search_components",
+        "jlcpcb_official_get_component_detail",
+        "jlcpcb_official_component_library",
+        "jlcpcb_official_private_library",
+        "jlcpcb_official_component_feed",
       ].sort()
     );
   });

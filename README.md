@@ -22,6 +22,8 @@ No API key or account is required.
 
 ## Tools
 
+### Catalog + live data (no credentials needed)
+
 | Tool | Description |
 |---|---|
 | `jlcpcb_search_components` | Search the catalog by keyword + filters (category, package, basic-only, min stock) and parametric values (resistance, capacitance, voltage rating, power, output voltage/current, input voltage). Results are enriched with live stock/pricing and ranked Basic-first, then by stock, then by price. |
@@ -32,6 +34,22 @@ No API key or account is required.
 | `jlcpcb_list_categories` | List catalog categories/subcategories with component counts. |
 | `jlcpcb_database_status` | Report the local catalog DB location, size, component count, and last build time. |
 | `jlcpcb_refresh_database` | Rebuild the local catalog from the latest yaqwsx/jlcparts snapshot. |
+
+### Official JLCPCB Open API (requires credentials)
+
+These call the authenticated [JLCPCB Open API](https://api.jlcpcb.com) (`open.jlcpcb.com`,
+HMAC-SHA256 signed). They return a "not configured" message until you set the credentials
+below. Apply for access at https://api.jlcpcb.com (approval is based on your order history).
+
+| Tool | Description |
+|---|---|
+| `jlcpcb_official_get_component_detail` | Authoritative details (specs/stock/price/attributes) for one or more LCSC codes. |
+| `jlcpcb_official_component_library` | Browse the full assembly component library, paginated. |
+| `jlcpcb_official_private_library` | List **your account's** private/consigned component library. |
+| `jlcpcb_official_component_feed` | Cursor-paginated bulk feed of the whole catalog (`lastKey`). |
+
+> Order-placement endpoints (PCB/SMT/3D-printing quotes and orders) are intentionally **not**
+> included — this server is read-only by design.
 
 ## Installation
 
@@ -74,6 +92,8 @@ All configuration is optional — the live API needs no credentials.
 |---|---|
 | `JLCPCB_DATABASE_PATH` | Override where the catalog SQLite file is stored. |
 | `JLCPCB_DEV_MODE` | Store the database in `./data` within the project (for development). |
+| `JLCPCB_APP_ID` / `JLCPCB_ACCESS_KEY` / `JLCPCB_SECRET_KEY` | Official Open API credentials — enable the `jlcpcb_official_*` tools. |
+| `JLCPCB_ENDPOINT` | Override the official API base (default `https://open.jlcpcb.com`). |
 
 Default database locations:
 
@@ -100,6 +120,7 @@ src/
   index.ts          # registers all tools on the MCP server (stdio)
   tool.ts           # shared ToolDef type
   live-client.ts    # wmsc.lcsc.com live product API client
+  official-client.ts# open.jlcpcb.com authenticated API (HMAC-SHA256 signing)
   database.ts       # DatabaseManager: build/verify/query the catalog (better-sqlite3)
   paths.ts          # platform data-dir resolution
   value-parser.ts   # resistance/capacitance/voltage/current/power parsers
@@ -108,6 +129,7 @@ src/
     details.ts      # get_component_details / _stock / _pricing / _datasheet
     catalog.ts      # jlcpcb_list_categories
     maintenance.ts  # jlcpcb_database_status / jlcpcb_refresh_database
+    official.ts     # jlcpcb_official_* (authenticated Open API)
 ```
 
 ## Releasing
