@@ -1,6 +1,6 @@
 {
   "name": "@eyalm321/jlcpcb-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server for JLCPCB/LCSC — search the component catalog (local SQLite from yaqwsx/jlcparts) and fetch live stock, pricing tiers, and datasheets from the JLCPCB API",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

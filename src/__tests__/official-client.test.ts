@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   buildAuthorizationHeader,
   canonicalUri,
@@ -7,6 +10,8 @@ import {
   getCredentials,
   hasOfficialCredentials,
   officialRequest,
+  officialUpload,
+  ordersEnabled,
   type OfficialCredentials,
 } from "../official-client.js";
 
@@ -16,6 +21,7 @@ const ENV_KEYS = [
   "JLCPCB_SECRET_KEY",
   "JLCPCB_ENDPOINT",
   "JLCPCB_CONTEXT_PATH",
+  "JLCPCB_ENABLE_ORDERS",
 ];
 const savedEnv: Record<string, string | undefined> = {};
 
@@ -150,6 +156,80 @@ describe("officialRequest", () => {
   it("throws when credentials are missing", async () => {
     delete process.env.JLCPCB_APP_ID;
     await expect(officialRequest("/x", { body: {} })).rejects.toThrow(
+      /credentials not configured/
+    );
+  });
+});
+
+describe("ordersEnabled", () => {
+  it.each(["1", "true", "TRUE", "yes"])("is true for %j", (value) => {
+    process.env.JLCPCB_ENABLE_ORDERS = value;
+    expect(ordersEnabled()).toBe(true);
+  });
+
+  it.each(["0", "false", "no", ""])("is false for %j", (value) => {
+    process.env.JLCPCB_ENABLE_ORDERS = value;
+    expect(ordersEnabled()).toBe(false);
+  });
+
+  it("is false when unset", () => {
+    delete process.env.JLCPCB_ENABLE_ORDERS;
+    expect(ordersEnabled()).toBe(false);
+  });
+});
+
+describe("officialUpload", () => {
+  let tmpFile: string;
+
+  beforeEach(() => {
+    process.env.JLCPCB_APP_ID = "a";
+    process.env.JLCPCB_ACCESS_KEY = "b";
+    process.env.JLCPCB_SECRET_KEY = "c";
+    tmpFile = path.join(
+      os.tmpdir(),
+      `jlc-upload-${process.pid}-${Math.random().toString(36).slice(2)}.bin`
+    );
+    fs.writeFileSync(tmpFile, "hello gerber");
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    try {
+      if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    } catch {
+      /* ignore */
+    }
+  });
+
+  it("posts multipart form data with a signed Authorization header", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ code: 200, data: { fileKey: "FK1" } }),
+    } as unknown as Response);
+
+    const data = await officialUpload("/overseas/openapi/pcb/uploadGerber", {
+      filePath: tmpFile,
+    });
+
+    expect(data).toEqual({ fileKey: "FK1" });
+    const [, opts] = vi.mocked(fetch).mock.calls[0];
+    expect((opts as RequestInit).body).toBeInstanceOf(FormData);
+    const headers = (opts as RequestInit).headers as Record<string, string>;
+    expect(headers.Authorization).toMatch(/^JOP appid="a"/);
+    // Content-Type is left to fetch (multipart boundary), not set manually.
+    expect(headers["Content-Type"]).toBeUndefined();
+  });
+
+  it("rejects when the file does not exist", async () => {
+    await expect(
+      officialUpload("/x", { filePath: path.join(os.tmpdir(), "nope-does-not-exist.bin") })
+    ).rejects.toThrow(/not found/i);
+  });
+
+  it("rejects when credentials are missing", async () => {
+    delete process.env.JLCPCB_APP_ID;
+    await expect(officialUpload("/x", { filePath: tmpFile })).rejects.toThrow(
       /credentials not configured/
     );
   });

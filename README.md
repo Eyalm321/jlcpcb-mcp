@@ -48,8 +48,35 @@ below. Apply for access at https://api.jlcpcb.com (approval is based on your ord
 | `jlcpcb_official_private_library` | List **your account's** private/consigned component library. |
 | `jlcpcb_official_component_feed` | Cursor-paginated bulk feed of the whole catalog (`lastKey`). |
 
-> Order-placement endpoints (PCB/SMT/3D-printing quotes and orders) are intentionally **not**
-> included — this server is read-only by design.
+### PCB / SMT-stencil ordering (requires credentials)
+
+| Tool | Description |
+|---|---|
+| `jlcpcb_pcb_upload_gerber` | Upload a Gerber archive; returns a `fileKey`. |
+| `jlcpcb_pcb_upload_blind_via_hole_img` | Upload a blind/buried-via stackup image. |
+| `jlcpcb_pcb_impedance_template_list` | List impedance template settings for a stackup. |
+| `jlcpcb_pcb_stencil_price_config` | Get the SMT stencil (steel) price configuration. |
+| `jlcpcb_pcb_calculate_price` | Quote price + lead time for a PCB / stencil order (no order placed). |
+| `jlcpcb_pcb_get_order_detail` | Order details by batch number. |
+| `jlcpcb_pcb_get_audit_info` | Engineering audit (review) info for an uploaded design. |
+| `jlcpcb_pcb_get_wip_process` | Work-in-progress production status for an order. |
+| `jlcpcb_pcb_create_order` ⚠️ | **Place a real, paid PCB order.** Gated by `JLCPCB_ENABLE_ORDERS`. |
+
+### 3D printing (TDP) (requires credentials)
+
+| Tool | Description |
+|---|---|
+| `jlcpcb_tdp_upload_model` | Upload a 3D model (STL/STEP); returns a `fileAccessId`. |
+| `jlcpcb_tdp_file_analysis_result` | Analysis result (dimensions/printability) for an uploaded model. |
+| `jlcpcb_tdp_calculate_price` | Quote price for a 3D-printing job (no order placed). |
+| `jlcpcb_tdp_order_list` | List your 3D-printing orders (paginated/filterable). |
+| `jlcpcb_tdp_order_detail` | 3D-printing order details by batch number. |
+| `jlcpcb_tdp_order_process` | Production progress for a 3D-printing order. |
+| `jlcpcb_tdp_create_order` ⚠️ | **Place a real, paid 3D-printing order.** Gated by `JLCPCB_ENABLE_ORDERS`. |
+
+> **Order safety:** the two `*_create_order` tools place real, paid orders and are **disabled by
+> default**. They only work when `JLCPCB_ENABLE_ORDERS=true` *and* credentials are set. Uploads
+> and price quotes are free and need only credentials.
 
 ## Installation
 
@@ -94,6 +121,7 @@ All configuration is optional — the live API needs no credentials.
 | `JLCPCB_DEV_MODE` | Store the database in `./data` within the project (for development). |
 | `JLCPCB_APP_ID` / `JLCPCB_ACCESS_KEY` / `JLCPCB_SECRET_KEY` | Official Open API credentials — enable the `jlcpcb_official_*` tools. |
 | `JLCPCB_ENDPOINT` | Override the official API base (default `https://open.jlcpcb.com`). |
+| `JLCPCB_ENABLE_ORDERS` | Set to `true`/`1` to allow the `*_create_order` tools to place real paid orders (off by default). |
 
 Default database locations:
 
@@ -129,7 +157,9 @@ src/
     details.ts      # get_component_details / _stock / _pricing / _datasheet
     catalog.ts      # jlcpcb_list_categories
     maintenance.ts  # jlcpcb_database_status / jlcpcb_refresh_database
-    official.ts     # jlcpcb_official_* (authenticated Open API)
+    official.ts     # jlcpcb_official_* (authenticated Parts API)
+    pcb.ts          # jlcpcb_pcb_* (PCB/SMT-stencil quote, upload, order)
+    tdp.ts          # jlcpcb_tdp_* (3D-printing quote, upload, order)
 ```
 
 ## Releasing

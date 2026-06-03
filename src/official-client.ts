@@ -11,11 +11,20 @@
  */
 
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 
 const DEFAULT_ENDPOINT = "https://open.jlcpcb.com";
 const NONCE_ALPHABET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const REQUEST_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
+/** Shared message shown by tools when official-API credentials are absent. */
+export const CREDENTIALS_MESSAGE =
+  "Official JLCPCB API credentials are not configured. Set JLCPCB_APP_ID, " +
+  "JLCPCB_ACCESS_KEY, and JLCPCB_SECRET_KEY (apply for access at https://api.jlcpcb.com). " +
+  "The catalog/live tools work without credentials.";
 
 export interface OfficialCredentials {
   appId: string;
@@ -177,6 +186,73 @@ export async function officialRequest<T = unknown>(
     },
     body: isPost ? bodyStr : undefined,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `JLCPCB official API HTTP ${res.status}${text ? `: ${text.slice(0, 300)}` : ""}`
+    );
+  }
+
+  const json = (await res.json()) as OfficialResponse<T>;
+  if (json.code !== 200) {
+    throw new Error(
+      `JLCPCB official API error ${json.code}: ${json.message ?? "unknown error"}`
+    );
+  }
+  return json.data as T;
+}
+
+/**
+ * Whether order-*creation* tools are explicitly enabled. These place real,
+ * paid orders, so they are opt-in via `JLCPCB_ENABLE_ORDERS` (1/true/yes).
+ */
+export function ordersEnabled(): boolean {
+  const value = (process.env.JLCPCB_ENABLE_ORDERS ?? "").trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+/**
+ * Upload a file to a signed multipart endpoint (gerber/blind-via image/3D model).
+ *
+ * Signing matches the official scheme for uploads: the signed body is the JSON
+ * `meta` string sent as a form field (not the file bytes). The multipart
+ * Content-Type/boundary is set automatically by `fetch`.
+ */
+export async function officialUpload<T = unknown>(
+  uri: string,
+  opts: { filePath: string; fileName?: string; meta?: Record<string, unknown> }
+): Promise<T> {
+  const creds = getCredentials();
+  if (!creds) {
+    throw new Error(
+      "Official JLCPCB API credentials not configured. Set JLCPCB_APP_ID, JLCPCB_ACCESS_KEY, and JLCPCB_SECRET_KEY."
+    );
+  }
+  if (!fs.existsSync(opts.filePath)) {
+    throw new Error(`Upload file not found: ${opts.filePath}`);
+  }
+
+  const metaStr = JSON.stringify(opts.meta ?? {});
+  const url = creds.endpoint + uri;
+  const fileName = opts.fileName ?? path.basename(opts.filePath);
+
+  const authorization = buildAuthorizationHeader(creds, {
+    method: "POST",
+    url,
+    body: metaStr,
+  });
+
+  const form = new FormData();
+  form.append("meta", metaStr);
+  form.append("file", new Blob([fs.readFileSync(opts.filePath)]), fileName);
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Accept: "application/json", Authorization: authorization },
+    body: form,
+    signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
   });
 
   if (!res.ok) {

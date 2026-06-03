@@ -6,6 +6,8 @@ import { detailTools } from "./tools/details.js";
 import { catalogTools } from "./tools/catalog.js";
 import { maintenanceTools } from "./tools/maintenance.js";
 import { officialTools } from "./tools/official.js";
+import { pcbTools } from "./tools/pcb.js";
+import { tdpTools } from "./tools/tdp.js";
 
 export const allTools = [
   ...searchTools,
@@ -13,12 +15,14 @@ export const allTools = [
   ...catalogTools,
   ...maintenanceTools,
   ...officialTools,
+  ...pcbTools,
+  ...tdpTools,
 ];
 
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "jlcpcb-mcp",
-    version: "0.2.0",
+    version: "0.3.0",
   });
 
   for (const tool of allTools) {

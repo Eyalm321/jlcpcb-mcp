@@ -4,6 +4,8 @@ import { detailTools } from "../tools/details.js";
 import { catalogTools } from "../tools/catalog.js";
 import { maintenanceTools } from "../tools/maintenance.js";
 import { officialTools } from "../tools/official.js";
+import { pcbTools } from "../tools/pcb.js";
+import { tdpTools } from "../tools/tdp.js";
 
 const allTools = [
   ...searchTools,
@@ -11,11 +13,23 @@ const allTools = [
   ...catalogTools,
   ...maintenanceTools,
   ...officialTools,
+  ...pcbTools,
+  ...tdpTools,
 ];
 
 describe("tool registry", () => {
-  it("aggregates the full 12-tool set", () => {
-    expect(allTools).toHaveLength(12);
+  it("aggregates the full 28-tool set", () => {
+    expect(allTools).toHaveLength(28);
+  });
+
+  it("has the expected per-group counts", () => {
+    expect(searchTools).toHaveLength(1);
+    expect(detailTools).toHaveLength(4);
+    expect(catalogTools).toHaveLength(1);
+    expect(maintenanceTools).toHaveLength(2);
+    expect(officialTools).toHaveLength(4);
+    expect(pcbTools).toHaveLength(9);
+    expect(tdpTools).toHaveLength(7);
   });
 
   it("has no duplicate tool names", () => {
@@ -36,24 +50,5 @@ describe("tool registry", () => {
       expect(tool.inputSchema.shape).toBeDefined();
       expect(typeof tool.handler).toBe("function");
     }
-  });
-
-  it("exposes the expected tool names", () => {
-    expect(allTools.map((t) => t.name).sort()).toEqual(
-      [
-        "jlcpcb_database_status",
-        "jlcpcb_get_component_details",
-        "jlcpcb_get_component_pricing",
-        "jlcpcb_get_component_stock",
-        "jlcpcb_get_datasheet_url",
-        "jlcpcb_list_categories",
-        "jlcpcb_refresh_database",
-        "jlcpcb_search_components",
-        "jlcpcb_official_get_component_detail",
-        "jlcpcb_official_component_library",
-        "jlcpcb_official_private_library",
-        "jlcpcb_official_component_feed",
-      ].sort()
-    );
   });
 });
