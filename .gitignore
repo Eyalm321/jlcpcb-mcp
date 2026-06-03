@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.js.map
+
+# Local catalog database (downloaded/built at runtime)
+data/
+*.sqlite
+*.sqlite.tmp

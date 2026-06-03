@@ -1,0 +1,60 @@
+{
+  "name": "@eyalm321/jlcpcb-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for JLCPCB/LCSC — search the component catalog (local SQLite from yaqwsx/jlcparts) and fetch live stock, pricing tiers, and datasheets from the JLCPCB API",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "main": "dist/index.js",
+  "bin": {
+    "jlcpcb-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "jlcpcb",
+    "lcsc",
+    "pcb",
+    "electronics",
+    "components",
+    "parts",
+    "claude",
+    "model-context-protocol"
+  ],
+  "author": "Eyalm321",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Eyalm321/jlcpcb-mcp.git"
+  },
+  "homepage": "https://github.com/Eyalm321/jlcpcb-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/Eyalm321/jlcpcb-mcp/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^12.10.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
