@@ -412,25 +412,15 @@ export class DatabaseManager {
 
         const attributes = DatabaseManager.resolveAttributes(attrIds, lut);
 
-        let basic = 0;
-        let manufacturer: string | null = null;
-        let pkg: string | null = null;
-
-        const firstValue = (name: string, key: string): string | undefined => {
-          const attr = attributes[name];
-          if (attr && typeof attr === "object") {
-            const values = (attr as { values?: Record<string, unknown[]> })
-              .values?.[key];
-            if (Array.isArray(values) && values.length > 0) {
-              return values[0] as string;
-            }
-          }
-          return undefined;
-        };
-
-        if (firstValue("Basic/Extended", "default") === "Basic") basic = 1;
-        manufacturer = firstValue("Manufacturer", "default") ?? null;
-        pkg = firstValue("Package", "default") ?? null;
+        const basic =
+          DatabaseManager.attrPrimaryValue(attributes, "Basic/Extended") ===
+          "Basic"
+            ? 1
+            : 0;
+        const manufacturer =
+          DatabaseManager.attrPrimaryValue(attributes, "Manufacturer") ?? null;
+        const pkg =
+          DatabaseManager.attrPrimaryValue(attributes, "Package") ?? null;
 
         insertComponent.run(
           lcsc,
@@ -488,6 +478,36 @@ export class DatabaseManager {
     return attributes;
   }
 
+  /**
+   * Read an attribute's canonical first value. jlcparts stores the value under
+   * the key named by the attribute's own `primary` field — `"identifier"` for
+   * Package/Manufacturer, `"default"` for Basic/Extended, etc. (manifest v4).
+   * We honor `primary` first, then fall back to common keys / any value, so the
+   * builder is robust across catalog format revisions.
+   */
+  static attrPrimaryValue(
+    attributes: Record<string, unknown>,
+    name: string
+  ): string | undefined {
+    const attr = attributes[name];
+    if (!attr || typeof attr !== "object") return undefined;
+    const obj = attr as {
+      primary?: string;
+      values?: Record<string, unknown[]>;
+    };
+    const values = obj.values;
+    if (!values) return undefined;
+    const keys = [obj.primary, "default", "identifier", ...Object.keys(values)];
+    for (const key of keys) {
+      if (!key) continue;
+      const arr = values[key];
+      if (Array.isArray(arr) && arr.length > 0 && arr[0] != null) {
+        return String(arr[0]);
+      }
+    }
+    return undefined;
+  }
+
   /** Verify the database opens and has the expected `components` table. */
   private verifyDatabase(): boolean {
     try {
@@ -528,9 +548,9 @@ export class DatabaseManager {
       for (const term of terms) {
         const like = `%${term}%`;
         termClauses.push(
-          "(mfr_part LIKE ? OR category LIKE ? OR subcategory LIKE ? OR manufacturer LIKE ?)"
+          "(mfr_part LIKE ? OR category LIKE ? OR subcategory LIKE ? OR manufacturer LIKE ? OR description LIKE ?)"
         );
-        params.push(like, like, like, like);
+        params.push(like, like, like, like, like);
       }
       if (termClauses.length > 0) {
         conditions.push("(" + termClauses.join(" AND ") + ")");

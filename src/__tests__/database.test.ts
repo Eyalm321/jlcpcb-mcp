@@ -82,6 +82,26 @@ describe("DatabaseManager.resolveAttributes", () => {
   });
 });
 
+describe("DatabaseManager.attrPrimaryValue", () => {
+  it("reads the value under the attribute's `primary` key (v4 identifier)", () => {
+    const attrs = {
+      Package: { primary: "identifier", values: { identifier: ["0805", "x"] } },
+      Manufacturer: { primary: "identifier", values: { identifier: ["UNI-ROYAL"] } },
+    };
+    expect(DatabaseManager.attrPrimaryValue(attrs, "Package")).toBe("0805");
+    expect(DatabaseManager.attrPrimaryValue(attrs, "Manufacturer")).toBe("UNI-ROYAL");
+  });
+
+  it("falls back to the `default` key for older/other shapes", () => {
+    const attrs = { "Basic/Extended": { values: { default: ["Basic", "string"] } } };
+    expect(DatabaseManager.attrPrimaryValue(attrs, "Basic/Extended")).toBe("Basic");
+  });
+
+  it("returns undefined for a missing attribute", () => {
+    expect(DatabaseManager.attrPrimaryValue({}, "Package")).toBeUndefined();
+  });
+});
+
 describe("DatabaseManager path resolution", () => {
   it("honours JLCPCB_DATABASE_PATH", () => {
     const m = new DatabaseManager();
@@ -163,11 +183,13 @@ describe("DatabaseManager.downloadDatabase (mocked upstream)", () => {
       { category: "Resistors", subcategory: "Chip Resistor", shards: ["r0.json.gz"] },
     ],
   };
+  // Mirrors the manifest-v4 LUT shape: Package/Manufacturer store their value
+  // under the `identifier` key (named by `primary`), Basic/Extended under `default`.
   const LUT = [
-    ["Basic/Extended", { values: { default: ["Basic"] } }],
-    ["Manufacturer", { values: { default: ["UNI-ROYAL"] } }],
-    ["Package", { values: { default: ["0805"] } }],
-    ["Resistance", { values: { resistance: [10000, "10kΩ"] } }],
+    ["Basic/Extended", { primary: "default", values: { default: ["Basic", "string"] } }],
+    ["Manufacturer", { primary: "identifier", values: { identifier: ["UNI-ROYAL", "identifier"] } }],
+    ["Package", { primary: "identifier", values: { identifier: ["0805", "identifier"] } }],
+    ["Resistance", { primary: "resistance", values: { resistance: [10000, "10kΩ"] } }],
   ];
   const SHARD_HEADER = {
     lcsc: 0, mfr: 1, description: 2, stock: 3, datasheet: 4, price: 5, img: 6, attributes: 7,
