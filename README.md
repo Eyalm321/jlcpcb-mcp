@@ -172,7 +172,7 @@ src/
 
 ## Releasing
 
-CI runs the build + tests on every push and PR to `main` (Node 20 & 22). Publishing is
+CI runs the build + tests on every push and PR to `main` (Node 22 & 24). Publishing is
 triggered by creating a **GitHub Release**, which publishes to **both** registries:
 
 - **npm** as the unscoped package `jlcpcb-mcp`
