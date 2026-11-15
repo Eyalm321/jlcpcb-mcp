@@ -7,7 +7,7 @@
 
 ### Security and dependencies
 - `@modelcontextprotocol/sdk` 1.29.0 → 1.32.2, `zod` → 4.6.7.
-- `npm audit`: 0 critical, 0 high. The remaining moderates are in the SDK's HTTP transport, which this stdio server never loads.
+- `npm audit --omit=dev`: 0 critical, 0 high (3 moderate, not reachable: they are in the SDK's HTTP transport, which this stdio server never loads). Dev-only findings in vitest 2.x remain, fixed by the vitest 5 follow-up.
 - Every dependency version is at least 14 days old (#1).
 
 ### Maintenance
