@@ -29,7 +29,7 @@ export const allTools = [
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "jlcpcb-mcp",
-    version: "0.4.0",
+    version: "0.4.1",
   });
 
   for (const tool of allTools) {
