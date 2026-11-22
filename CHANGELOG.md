@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 (2026-11-22)
+
+### Changed
+- `better-sqlite3` 12.10.0 → 13.0.3 (and `@types/better-sqlite3` 9.6.0). 13 is built on N-API and ships prebuilt binaries for Linux (glibc and musl), macOS and Windows on x64 and arm64, with no install script, so `npx` no longer needs install-script approval or a compiler to load it (#23).
+
+### Maintenance
+- `typescript` → 7.0.2, `vitest` 2.1.9 → 5.1.0 and `@types/node` 22.20.5 (dev only) (#8, #16, #23). This clears the dev-only vitest 2.x findings noted in 0.4.0 and 0.4.1.
+- Dependabot opens one weekly PR for npm majors and one for all action bumps (#21, #22). Checkouts in CI no longer persist credentials (#20).
+
 ## 0.4.1 (2026-11-16)
 
 ### Security
